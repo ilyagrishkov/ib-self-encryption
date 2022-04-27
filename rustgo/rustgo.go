@@ -1,7 +1,8 @@
 package rustgo
 
 import (
-	wasm "github.com/wasmerio/go-ext-wasm/wasmer"
+	wasm "github.com/wasmerio/wasmer-go/wasmer"
+	"io/ioutil"
 	"log"
 	"reflect"
 	"strings"
@@ -25,13 +26,20 @@ type Pair[T, U any] struct {
 }
 
 type WasmLib struct {
-	Instance   wasm.Instance
+	Instance   *wasm.Instance
 	References map[int32]int
 }
 
 func NewWasmLib(filepath string) WasmLib {
-	bytes, _ := wasm.ReadBytes(filepath)
-	instance, _ := wasm.NewInstance(bytes)
+	wasmBytes, _ := ioutil.ReadFile(filepath)
+
+	store := wasm.NewStore(wasm.NewEngine())
+	module, _ := wasm.NewModule(store, wasmBytes)
+
+	wasiEnv, _ := wasm.NewWasiStateBuilder("wasi-program").InheritStdout().Finalize()
+	importObject, _ := wasiEnv.GenerateImportObject(store, module)
+
+	instance, _ := wasm.NewInstance(module, importObject)
 
 	return WasmLib{
 		Instance:   instance,
@@ -40,15 +48,16 @@ func NewWasmLib(filepath string) WasmLib {
 }
 
 func (wasmLib WasmLib) Invoke(function string, returnType Type, arguments ...interface{}) (interface{}, error) {
-	f := wasmLib.Instance.Exports[function]
+	f, _ := wasmLib.Instance.Exports.GetFunction(function)
 
 	var args []interface{}
 	var pointers []Pair[*uint8, int32]
 	for _, argument := range arguments {
 		isPointer := reflect.ValueOf(argument).Kind() == reflect.Ptr
 		if isPointer {
-			allocateResult, _ := wasmLib.Instance.Exports["allocate"](1)
-			inputPointer := allocateResult.ToI32()
+			allocate, _ := wasmLib.Instance.Exports.GetFunction("allocate")
+			allocateResult, _ := allocate(1)
+			inputPointer := allocateResult.(int32)
 
 			wasmLib.References[inputPointer] = 1
 			args = append(args, inputPointer)
@@ -61,18 +70,20 @@ func (wasmLib WasmLib) Invoke(function string, returnType Type, arguments ...int
 			{
 				subject := argument.(string)
 				lengthOfSubject := len(subject)
-				allocateResult, _ := wasmLib.Instance.Exports["allocate"](lengthOfSubject)
-				inputPointer := allocateResult.ToI32()
+				allocate, _ := wasmLib.Instance.Exports.GetFunction("allocate")
+				allocateResult, _ := allocate(1)
+				inputPointer := allocateResult.(int32)
 
 				// Write the subject into the memory.
-				memory := wasmLib.Instance.Memory.Data()[inputPointer:]
+				memory, _ := wasmLib.Instance.Exports.GetMemory("memory")
+				memorySlice := memory.Data()[inputPointer:]
 
 				for nth := 0; nth < lengthOfSubject; nth++ {
-					memory[nth] = subject[nth]
+					memorySlice[nth] = subject[nth]
 				}
 
 				// C-string terminates by NULL.
-				memory[lengthOfSubject] = 0
+				memorySlice[lengthOfSubject] = 0
 				wasmLib.References[inputPointer] = lengthOfSubject
 				args = append(args, inputPointer)
 			}
@@ -96,26 +107,27 @@ func (wasmLib WasmLib) Invoke(function string, returnType Type, arguments ...int
 
 	switch returnType {
 	case Int32:
-		return result.ToI32(), nil
+		return result.(int32), nil
 	case Int64:
-		return result.ToI64(), nil
+		return result.(int64), nil
 	case Float32:
-		return result.ToF32(), nil
+		return result.(float32), nil
 	case Float64:
-		return result.ToF64(), nil
+		return result.(float64), nil
 	case String:
 		{
-			outputPointer := result.ToI32()
-			memory := wasmLib.Instance.Memory.Data()[outputPointer:]
+			outputPointer := result.(int32)
+			memory, _ := wasmLib.Instance.Exports.GetMemory("memory")
+			memorySlice := memory.Data()[outputPointer:]
 			nth := 0
 			var output strings.Builder
 
 			for {
-				if memory[nth] == 0 {
+				if memorySlice[nth] == 0 {
 					break
 				}
 
-				output.WriteByte(memory[nth])
+				output.WriteByte(memorySlice[nth])
 				nth++
 			}
 			wasmLib.References[outputPointer] = nth
@@ -123,13 +135,15 @@ func (wasmLib WasmLib) Invoke(function string, returnType Type, arguments ...int
 		}
 	case Array:
 		{
+			memory, _ := wasmLib.Instance.Exports.GetMemory("memory")
 			for _, pointer := range pointers {
-				memory := wasmLib.Instance.Memory.Data()[pointer.Second]
-				*pointer.First = memory
+
+				memorySlice := memory.Data()[pointer.Second]
+				*pointer.First = memorySlice
 			}
-			outputPointer := result.ToI32()
-			memory := wasmLib.Instance.Memory.Data()[outputPointer:]
-			size := int(wasmLib.Instance.Memory.Data()[pointers[len(pointers)-1].Second])
+			outputPointer := result.(int32)
+			memorySlice := memory.Data()[outputPointer:]
+			size := int(memory.Data()[pointers[len(pointers)-1].Second])
 			nth := 0
 			var output []byte
 
@@ -137,7 +151,7 @@ func (wasmLib WasmLib) Invoke(function string, returnType Type, arguments ...int
 				if nth == size {
 					break
 				}
-				output = append(output, memory[nth])
+				output = append(output, memorySlice[nth])
 				nth++
 			}
 			wasmLib.References[outputPointer] = size
@@ -150,7 +164,7 @@ func (wasmLib WasmLib) Invoke(function string, returnType Type, arguments ...int
 }
 
 func (wasmLib WasmLib) Close() {
-	deallocate := wasmLib.Instance.Exports["deallocate"]
+	deallocate, _ := wasmLib.Instance.Exports.GetFunction("deallocate")
 	for ptr, length := range wasmLib.References {
 		_, err := deallocate(ptr, length)
 		if err != nil {
