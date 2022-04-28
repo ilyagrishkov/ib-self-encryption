@@ -36,7 +36,7 @@ func NewWasmLib(filepath string) WasmLib {
 	store := wasm.NewStore(wasm.NewEngine())
 	module, _ := wasm.NewModule(store, wasmBytes)
 
-	wasiEnv, _ := wasm.NewWasiStateBuilder("wasi-program").InheritStdout().Finalize()
+	wasiEnv, _ := wasm.NewWasiStateBuilder("wasi-program").InheritStdout().MapDirectory("./", ".").Finalize()
 	importObject, _ := wasiEnv.GenerateImportObject(store, module)
 
 	instance, _ := wasm.NewInstance(module, importObject)
@@ -71,7 +71,7 @@ func (wasmLib WasmLib) Invoke(function string, returnType Type, arguments ...int
 				subject := argument.(string)
 				lengthOfSubject := len(subject)
 				allocate, _ := wasmLib.Instance.Exports.GetFunction("allocate")
-				allocateResult, _ := allocate(1)
+				allocateResult, _ := allocate(lengthOfSubject)
 				inputPointer := allocateResult.(int32)
 
 				// Write the subject into the memory.
