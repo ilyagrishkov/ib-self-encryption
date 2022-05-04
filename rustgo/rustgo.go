@@ -87,15 +87,6 @@ func (wasmLib WasmLib) Invoke(function string, returnType Type, arguments ...int
 				wasmLib.References[inputPointer] = lengthOfSubject
 				args = append(args, inputPointer)
 			}
-		//case uint32:
-		//	{
-		//		allocateResult, _ := wasmLib.Instance.Exports["allocate"](1)
-		//		inputPointer := allocateResult.ToI32()
-		//
-		//		wasmLib.References[inputPointer] = 1
-		//		args = append(args, inputPointer)
-		//		pointers = append(pointers, inputPointer)
-		//	}
 		default:
 			args = append(args, argument)
 		}
