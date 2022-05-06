@@ -17,7 +17,7 @@ func Init() {
 
 	RootDir = fmt.Sprintf("%s/.ibse", home)
 	TempDir = fmt.Sprintf("%s/.ibse/tmp", home)
-	ConfigFile = fmt.Sprintf("%s/.ibse/config.yaml")
+	ConfigFile = fmt.Sprintf("%s/.ibse/config.yaml", home)
 
 	if _, err := os.Stat(TempDir); os.IsNotExist(err) {
 		err := os.MkdirAll(TempDir, os.ModePerm)
