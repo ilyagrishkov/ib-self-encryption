@@ -9,10 +9,11 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"os"
+	"path"
 )
 
 var addCmd = &cobra.Command{
-	Use:   "add [path to file] [key output dir]",
+	Use:   "add [path to file] [data map output dir]",
 	Short: "encrypt file and add it to Fabric",
 	Long:  `Encrypt file using ID-based self-encryption, upload chunks to IPFS, and create new Fabric asset`,
 	Args:  cobra.ExactArgs(2),
@@ -28,7 +29,7 @@ var addCmd = &cobra.Command{
 			return
 		}
 		fabric := internal.NewFabric()
-		err = fabric.CreateAsset(string(rand.Int31n(100000)), cid)
+		err = fabric.CreateAsset(generateRandomID(15), cid)
 		if err != nil {
 			return
 		}
@@ -43,11 +44,23 @@ func init() {
 	RootCmd.AddCommand(addCmd)
 }
 
+func generateRandomID(n int) string {
+	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
+
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
 func getChunkNames(outputPath string) []string {
 	var chunks []string
 	items, _ := ioutil.ReadDir(outputPath)
 	for _, item := range items {
-		chunks = append(chunks, item.Name())
+		if item.Name() != "data_map" {
+			chunks = append(chunks, fmt.Sprintf("%s/chunk_store/%s", internal.TempDir, item.Name()))
+		}
 	}
 	return chunks
 }
@@ -59,7 +72,7 @@ func appendFiles(filename string, zipWriter *zip.Writer) error {
 	}
 	defer file.Close()
 
-	wr, err := zipWriter.Create(filename)
+	wr, err := zipWriter.Create(path.Base(filename))
 	if err != nil {
 		return fmt.Errorf("failed to create entry for %s in zip file: %s", filename, err)
 	}

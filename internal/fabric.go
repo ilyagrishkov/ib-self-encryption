@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/hyperledger/fabric-sdk-go/pkg/core/config"
 	"github.com/hyperledger/fabric-sdk-go/pkg/gateway"
@@ -60,6 +61,33 @@ func (fabric Fabric) CreateAsset(id string, cid string) error {
 		log.Fatalf("Failed to Create asset: %v", err)
 	}
 	return nil
+}
+
+func (fabric Fabric) ReadAsset(id string) (map[string]interface{}, error) {
+	result, err := fabric.contract.EvaluateTransaction("ReadAsset", id)
+	if err != nil {
+		return nil, err
+	}
+
+	var asset map[string]interface{}
+	err = json.Unmarshal(result, &asset)
+	if err != nil {
+		return nil, err
+	}
+	return asset, nil
+}
+
+func (fabric Fabric) ReadAllAssets() ([]map[string]interface{}, error) {
+	result, err := fabric.contract.EvaluateTransaction("GetAllAssets")
+	if err != nil {
+		log.Fatalf("Failed to evaluate transaction: %v", err)
+	}
+	var assets []map[string]interface{}
+	err = json.Unmarshal(result, &assets)
+	if err != nil {
+		return nil, err
+	}
+	return assets, nil
 }
 
 func populateWallet(wallet *gateway.Wallet) error {
