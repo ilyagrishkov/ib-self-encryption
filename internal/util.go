@@ -2,11 +2,43 @@ package internal
 
 import (
 	"fmt"
+	shell "github.com/ipfs/go-ipfs-api"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
+	"rustgo"
 )
+
+func SendToIPFS(filepath string) (string, error) {
+	sh := shell.NewShell("localhost:5001")
+
+	file, err := os.Open(filepath)
+	if err != nil {
+		return "", nil
+	}
+
+	return sh.Add(file)
+}
+
+func Encrypt(filepath string) (string, error) {
+	wasmLoc := fmt.Sprintf("%s/ib_self_encryption_rust.wasm", RootDir)
+	wasm := rustgo.NewWasmLib(wasmLoc, TempDir)
+
+	filename := path.Base(filepath)
+	dst := fmt.Sprintf("%s/%s", TempDir, filename)
+
+	err := CopyFile(filepath, dst)
+	if err != nil {
+		return "", err
+	}
+
+	_, err = wasm.Invoke("self_encrypt", rustgo.Void, filename)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s/chunk_store", TempDir), nil
+}
 
 func CopyFile(src string, dst string) error {
 	var err error
