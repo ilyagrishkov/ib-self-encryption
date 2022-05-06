@@ -9,7 +9,7 @@ import (
 )
 
 var encryptCmd = &cobra.Command{
-	Use:   "encrypt [path to file]",
+	Use:   "encrypt [path to file] [output path]",
 	Short: "encrypts file locally",
 	Long:  `This subcommand encrypts file using ID-based self-encryption`,
 	Args:  cobra.ExactArgs(2),
