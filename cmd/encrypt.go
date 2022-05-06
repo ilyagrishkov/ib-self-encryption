@@ -3,8 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/spf13/cobra"
-	"io"
-	"os"
+	"ibse/internal"
 	"path"
 	"rustgo"
 )
@@ -13,56 +12,38 @@ var encryptCmd = &cobra.Command{
 	Use:   "encrypt [path to file]",
 	Short: "encrypts file locally",
 	Long:  `This subcommand encrypts file using ID-based self-encryption`,
-	Args:  cobra.ExactArgs(1),
+	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		err := encrypt(args[0])
+		err := encrypt(args[0], args[1])
 		if err != nil {
 			return
 		}
-		getBool, err := cmd.Flags().GetBool("compress")
-		if err != nil {
-			return
-		}
-		fmt.Println(getBool)
 	},
 }
 
 func init() {
 	RootCmd.AddCommand(encryptCmd)
-	encryptCmd.Flags().BoolP("compress", "c", false, "Compress result")
 }
 
-func encrypt(filepath string) error {
-	wasm := rustgo.NewWasmLib("rustgo/ib_self_encryption_rust.wasm")
-	sourceFileStat, err := os.Stat(filepath)
+func encrypt(filepath string, destination string) error {
+	wasmLoc := fmt.Sprintf("%s/ib_self_encryption_rust.wasm", internal.RootDir)
+	wasm := rustgo.NewWasmLib(wasmLoc, internal.TempDir)
+
+	filename := path.Base(filepath)
+	dst := fmt.Sprintf("%s/%s", internal.TempDir, filename)
+
+	err := internal.CopyFile(filepath, dst)
 	if err != nil {
 		return err
 	}
 
-	if !sourceFileStat.Mode().IsRegular() {
-		return fmt.Errorf("%s is not a regular file", filepath)
-	}
-
-	source, err := os.Open(filepath)
+	_, err = wasm.Invoke("self_encrypt", rustgo.Void, filename)
 	if err != nil {
 		return err
 	}
-	defer source.Close()
 
-	dst := path.Base(filepath)
-	destination, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer destination.Close()
-
-	_, err = io.Copy(destination, source)
-	if err != nil {
-		return err
-	}
-	_, err = wasm.Invoke("self_encrypt", rustgo.Void, dst)
-
-	err = os.Remove(dst)
+	output := fmt.Sprintf("%s/chunk_store", internal.TempDir)
+	err = internal.CopyDir(output, destination)
 	if err != nil {
 		return err
 	}

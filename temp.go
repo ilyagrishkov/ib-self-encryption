@@ -12,7 +12,7 @@ import (
 )
 
 func uselessStuff() {
-	wasm := rustgo.NewWasmLib("rustgo/ib_self_encryption_rust.wasm")
+	wasm := rustgo.NewWasmLib("rustgo/ib_self_encryption_rust.wasm", "")
 	defer wasm.Close()
 
 	_, _ = wasm.Invoke("self_encrypt", rustgo.Void, "test1.jpg")

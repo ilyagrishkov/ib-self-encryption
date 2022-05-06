@@ -30,13 +30,13 @@ type WasmLib struct {
 	References map[int32]int
 }
 
-func NewWasmLib(filepath string) WasmLib {
+func NewWasmLib(filepath string, workDir string) WasmLib {
 	wasmBytes, _ := ioutil.ReadFile(filepath)
 
 	store := wasm.NewStore(wasm.NewEngine())
 	module, _ := wasm.NewModule(store, wasmBytes)
 
-	wasiEnv, _ := wasm.NewWasiStateBuilder("wasi-program").InheritStdout().MapDirectory("./", ".").Finalize()
+	wasiEnv, _ := wasm.NewWasiStateBuilder("wasi-program").InheritStdout().MapDirectory(".", workDir).Finalize()
 	importObject, _ := wasiEnv.GenerateImportObject(store, module)
 
 	instance, _ := wasm.NewInstance(module, importObject)
