@@ -12,4 +12,5 @@ func main() {
 	cmd.Execute()
 
 	os.RemoveAll(internal.TempDir)
+	os.Remove("keystore")
 }

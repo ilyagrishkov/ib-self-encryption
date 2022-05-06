@@ -91,7 +91,6 @@ func (fabric Fabric) ReadAllAssets() ([]map[string]interface{}, error) {
 }
 
 func populateWallet(wallet *gateway.Wallet) error {
-	log.Println("============ Populating wallet ============")
 	credPath := viper.Get("cred_path").(string)
 
 	certPath := filepath.Join(credPath, "signcerts", "cert.pem")
