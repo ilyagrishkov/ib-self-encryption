@@ -43,6 +43,12 @@ func NewFabric() Fabric {
 	if err != nil {
 		log.Fatalf("Failed to connect to gateway: %v", err)
 	}
+
+	err = os.Remove("keystore")
+	if err != nil {
+		log.Fatalf("Failed to remove keystore: %v", err)
+	}
+
 	defer gw.Close()
 
 	network, err := gw.GetNetwork("mychannel")
@@ -116,6 +122,5 @@ func populateWallet(wallet *gateway.Wallet) error {
 	}
 
 	identity := gateway.NewX509Identity("Org1MSP", string(cert), string(key))
-
 	return wallet.Put("appUser", identity)
 }
