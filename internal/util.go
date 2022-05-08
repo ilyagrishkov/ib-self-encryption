@@ -35,7 +35,7 @@ func GetFromIPFS(cid string) (string, error) {
 	return out, nil
 }
 
-func Encrypt(filepath string) (string, error) {
+func Encrypt(filepath string, identity string) (string, error) {
 	wasmLoc := fmt.Sprintf("%s/ib_self_encryption_rust.wasm", RootDir)
 	wasm := rustgo.NewWasmLib(wasmLoc, TempDir)
 
@@ -47,7 +47,7 @@ func Encrypt(filepath string) (string, error) {
 		return "", err
 	}
 
-	_, err = wasm.Invoke("self_encrypt", rustgo.Void, filename)
+	_, err = wasm.Invoke("self_encrypt", rustgo.Void, filename, identity)
 	if err != nil {
 		return "", err
 	}

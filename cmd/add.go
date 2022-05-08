@@ -13,12 +13,12 @@ import (
 )
 
 var addCmd = &cobra.Command{
-	Use:   "add [path to file] [data map output dir]",
+	Use:   "add [identity] [path to file] [data map output dir]",
 	Short: "encrypt file and add it to Fabric",
 	Long:  `Encrypt file using ID-based self-encryption, upload chunks to IPFS, and create new Fabric asset`,
-	Args:  cobra.ExactArgs(2),
+	Args:  cobra.ExactArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {
-		output, err := internal.Encrypt(args[0])
+		output, err := internal.Encrypt(args[1], args[0])
 		if err != nil {
 			return
 		}
@@ -33,7 +33,7 @@ var addCmd = &cobra.Command{
 		if err != nil {
 			return
 		}
-		err = internal.CopyFile(fmt.Sprintf("%s/data_map", output), args[1])
+		err = internal.CopyFile(fmt.Sprintf("%s/data_map", output), args[2])
 		if err != nil {
 			return
 		}

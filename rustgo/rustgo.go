@@ -71,7 +71,7 @@ func (wasmLib WasmLib) Invoke(function string, returnType Type, arguments ...int
 				subject := argument.(string)
 				lengthOfSubject := len(subject)
 				allocate, _ := wasmLib.Instance.Exports.GetFunction("allocate")
-				allocateResult, _ := allocate(lengthOfSubject)
+				allocateResult, _ := allocate(lengthOfSubject + 1)
 				inputPointer := allocateResult.(int32)
 
 				// Write the subject into the memory.
@@ -84,7 +84,7 @@ func (wasmLib WasmLib) Invoke(function string, returnType Type, arguments ...int
 
 				// C-string terminates by NULL.
 				memorySlice[lengthOfSubject] = 0
-				wasmLib.References[inputPointer] = lengthOfSubject
+				wasmLib.References[inputPointer] = lengthOfSubject + 1
 				args = append(args, inputPointer)
 			}
 		default:
