@@ -54,7 +54,7 @@ func Encrypt(filepath string, identity string) (string, error) {
 	return fmt.Sprintf("%s/chunk_store", TempDir), nil
 }
 
-func Decrypt(filepath string, destination string) (string, error) {
+func Decrypt(filepath string, destination string, identity string) (string, error) {
 	wasmLoc := fmt.Sprintf("%s/ib_self_encryption_rust.wasm", RootDir)
 	wasm := rustgo.NewWasmLib(wasmLoc, TempDir)
 
@@ -66,7 +66,7 @@ func Decrypt(filepath string, destination string) (string, error) {
 		}
 	}
 
-	_, err := wasm.Invoke("self_decrypt", rustgo.Void, filename)
+	_, err := wasm.Invoke("self_decrypt", rustgo.Void, filename, identity)
 	if err != nil {
 		return "", err
 	}

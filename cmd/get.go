@@ -7,13 +7,13 @@ import (
 )
 
 var getCmd = &cobra.Command{
-	Use:   "get [id] [path to data map] [destination path]",
+	Use:   "get [identity] [block id] [path to data map] [destination path]",
 	Short: "get file from Fabric and decrypt it",
 	Long:  `Get chunks of encrypted file from IPFS, and decrypt them`,
-	Args:  cobra.ExactArgs(3),
+	Args:  cobra.ExactArgs(4),
 	Run: func(cmd *cobra.Command, args []string) {
 		fabric := internal.NewFabric()
-		asset, err := fabric.ReadAsset(args[0])
+		asset, err := fabric.ReadAsset(args[1])
 		if err != nil {
 			return
 		}
@@ -23,8 +23,8 @@ var getCmd = &cobra.Command{
 		if err != nil {
 			return
 		}
-		createChunkStore(args[1], path)
-		_, err = internal.Decrypt(fmt.Sprintf("%s/chunk_store", internal.TempDir), args[2])
+		createChunkStore(args[2], path)
+		_, err = internal.Decrypt(fmt.Sprintf("%s/chunk_store", internal.TempDir), args[3], args[0])
 		if err != nil {
 			return
 		}
