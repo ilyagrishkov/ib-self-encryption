@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/spf13/cobra"
 	"ibse/internal"
+	"os"
 )
 
 var getCmd = &cobra.Command{
@@ -18,12 +19,17 @@ var getCmd = &cobra.Command{
 			return
 		}
 
-		cid := asset["CID"].(string)
-		path, err := internal.GetFromIPFS(cid)
+		CIDs := asset.CID
+		var paths []string
+		for _, cid := range CIDs {
+			path, _ := internal.GetFromIPFS(cid)
+			paths = append(paths, path)
+		}
+
 		if err != nil {
 			return
 		}
-		createChunkStore(args[2], path)
+		createChunkStore(args[2], paths)
 		_, err = internal.Decrypt(fmt.Sprintf("%s/chunk_store", internal.TempDir), args[3], args[0])
 		if err != nil {
 			return
@@ -35,11 +41,22 @@ func init() {
 	RootCmd.AddCommand(getCmd)
 }
 
-func createChunkStore(dataMapLoc string, chunksLoc string) {
-	_, err := internal.Unzip(chunksLoc, fmt.Sprintf("%s/chunk_store", internal.TempDir))
+func createChunkStore(dataMapLoc string, chunksLocs []string) {
+	err := os.Mkdir(fmt.Sprintf("%s/chunk_store", internal.TempDir), os.ModePerm)
 	if err != nil {
 		return
 	}
+	for _, chunkLoc := range chunksLocs {
+		_, err := internal.Unzip(chunkLoc, fmt.Sprintf("%s/chunk_store", internal.TempDir))
+		if err != nil {
+			return
+		}
+		//err = internal.CopyFile(chunkLoc, fmt.Sprintf("%s/chunk_store/%s", internal.TempDir, path.Base(chunkLoc)))
+		//if err != nil {
+		//	return
+		//}
+	}
+
 	err = internal.CopyFile(dataMapLoc, fmt.Sprintf("%s/chunk_store/data_map", internal.TempDir))
 	if err != nil {
 		return

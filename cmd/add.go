@@ -23,13 +23,17 @@ var addCmd = &cobra.Command{
 			return
 		}
 		chunks := getChunkNames(output)
-		path, _ := zipChunks(chunks)
-		cid, err := internal.SendToIPFS(path)
-		if err != nil {
-			return
+		var CIDs []string
+		for chunk := range chunks {
+			zipped, err := zipChunk(chunk)
+			if err != nil {
+				return
+			}
+			cid, _ := internal.SendToIPFS(zipped)
+			CIDs = append(CIDs, cid)
 		}
 		fabric := internal.NewFabric()
-		err = fabric.CreateAsset(generateRandomID(15), cid)
+		err = fabric.CreateAsset(generateRandomID(15), args[0], CIDs)
 		if err != nil {
 			return
 		}
@@ -54,12 +58,12 @@ func generateRandomID(n int) string {
 	return string(b)
 }
 
-func getChunkNames(outputPath string) []string {
-	var chunks []string
+func getChunkNames(outputPath string) map[string]bool {
+	chunks := map[string]bool{}
 	items, _ := ioutil.ReadDir(outputPath)
 	for _, item := range items {
 		if item.Name() != "data_map" {
-			chunks = append(chunks, fmt.Sprintf("%s/chunk_store/%s", internal.TempDir, item.Name()))
+			chunks[fmt.Sprintf("%s/chunk_store/%s", internal.TempDir, item.Name())] = true
 		}
 	}
 	return chunks
@@ -84,7 +88,7 @@ func appendFiles(filename string, zipWriter *zip.Writer) error {
 	return nil
 }
 
-func zipChunks(chunks []string) (string, error) {
+func zipChunk(chunk string) (string, error) {
 	flags := os.O_WRONLY | os.O_CREATE | os.O_TRUNC
 	file, err := os.OpenFile(fmt.Sprintf("%s/chunks.zip", internal.TempDir), flags, 0644)
 	if err != nil {
@@ -95,10 +99,20 @@ func zipChunks(chunks []string) (string, error) {
 	zipw := zip.NewWriter(file)
 	defer zipw.Close()
 
-	for _, filename := range chunks {
-		if err := appendFiles(filename, zipw); err != nil {
-			return "", err
-		}
+	chunkFile, err := os.Open(chunk)
+	if err != nil {
+		return "", fmt.Errorf("failed to open %s: %s", chunk, err)
 	}
+	defer chunkFile.Close()
+
+	wr, err := zipw.Create(path.Base(chunk))
+	if err != nil {
+		return "", fmt.Errorf("failed to create entry for %s in zip file: %s", chunk, err)
+	}
+
+	if _, err := io.Copy(wr, chunkFile); err != nil {
+		return "", fmt.Errorf("failed to write %s to zip: %s", chunk, err)
+	}
+
 	return fmt.Sprintf("%s/chunks.zip", internal.TempDir), nil
 }

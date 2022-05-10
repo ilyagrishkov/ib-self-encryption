@@ -16,6 +16,12 @@ type Fabric struct {
 	contract *gateway.Contract
 }
 
+type Asset struct {
+	ID    string   `json:"ID"`
+	Owner string   `json:"Owner"`
+	CID   []string `json:"CID"`
+}
+
 func NewFabric() Fabric {
 	err := os.Setenv("DISCOVERY_AS_LOCALHOST", "true")
 	if err != nil {
@@ -61,24 +67,25 @@ func NewFabric() Fabric {
 	}
 }
 
-func (fabric Fabric) CreateAsset(id string, cid string) error {
-	_, err := fabric.contract.SubmitTransaction("CreateAsset", id, cid)
+func (fabric Fabric) CreateAsset(id string, owner string, CIDs []string) error {
+	CIDsJson, err := json.Marshal(CIDs)
+	_, err = fabric.contract.SubmitTransaction("CreateAsset", id, owner, string(CIDsJson))
 	if err != nil {
 		log.Fatalf("Failed to Create asset: %v", err)
 	}
 	return nil
 }
 
-func (fabric Fabric) ReadAsset(id string) (map[string]interface{}, error) {
+func (fabric Fabric) ReadAsset(id string) (Asset, error) {
 	result, err := fabric.contract.EvaluateTransaction("ReadAsset", id)
 	if err != nil {
-		return nil, err
+		return Asset{}, err
 	}
 
-	var asset map[string]interface{}
+	var asset Asset
 	err = json.Unmarshal(result, &asset)
 	if err != nil {
-		return nil, err
+		return Asset{}, err
 	}
 	return asset, nil
 }

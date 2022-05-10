@@ -27,7 +27,7 @@ func SendToIPFS(filepath string) (string, error) {
 func GetFromIPFS(cid string) (string, error) {
 	sh := shell.NewShell("localhost:5001")
 
-	out := fmt.Sprintf("%s/out.zip", TempDir)
+	out := fmt.Sprintf("%s/%s.zip", TempDir, cid)
 	err := sh.Get(cid, out)
 	if err != nil {
 		return "", err
