@@ -3,6 +3,7 @@ package cmd
 import (
 	"archive/zip"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/spf13/cobra"
 	"ibse/internal"
 	"io"
@@ -13,12 +14,13 @@ import (
 )
 
 var addCmd = &cobra.Command{
-	Use:   "add [identity] [path to file] [data map output dir]",
+	Use:   "add [path to file] [data map output dir]",
 	Short: "encrypt file and add it to Fabric",
 	Long:  `Encrypt file using ID-based self-encryption, upload chunks to IPFS, and create new Fabric asset`,
-	Args:  cobra.ExactArgs(3),
+	Args:  cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
-		output, err := internal.Encrypt(args[1], args[0])
+		fabric := internal.NewFabric()
+		output, err := internal.Encrypt(args[0], fabric.PublicKey)
 		if err != nil {
 			return
 		}
@@ -32,12 +34,12 @@ var addCmd = &cobra.Command{
 			cid, _ := internal.SendToIPFS(zipped)
 			CIDs = append(CIDs, cid)
 		}
-		fabric := internal.NewFabric()
-		err = fabric.CreateAsset(generateRandomID(15), args[0], CIDs)
+
+		err = fabric.CreateAsset(uuid.New().String(), CIDs)
 		if err != nil {
 			return
 		}
-		err = internal.CopyFile(fmt.Sprintf("%s/data_map", output), args[2])
+		err = internal.CopyFile(fmt.Sprintf("%s/data_map", output), args[1])
 		if err != nil {
 			return
 		}

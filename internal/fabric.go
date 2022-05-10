@@ -1,7 +1,10 @@
 package internal
 
 import (
+	"crypto/x509"
+	"encoding/hex"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"github.com/hyperledger/fabric-sdk-go/pkg/core/config"
 	"github.com/hyperledger/fabric-sdk-go/pkg/gateway"
@@ -13,7 +16,8 @@ import (
 )
 
 type Fabric struct {
-	contract *gateway.Contract
+	PublicKey string
+	contract  *gateway.Contract
 }
 
 type Asset struct {
@@ -28,10 +32,7 @@ func NewFabric() Fabric {
 		log.Fatalf("Error setting DISCOVERY_AS_LOCALHOST environemnt variable: %v", err)
 	}
 
-	wallet, err := gateway.NewFileSystemWallet(fmt.Sprintf("%s/wallet", RootDir))
-	if err != nil {
-		log.Fatalf("Failed to create wallet: %v", err)
-	}
+	wallet := gateway.NewInMemoryWallet()
 
 	if !wallet.Exists("appUser") {
 		err = populateWallet(wallet)
@@ -62,14 +63,26 @@ func NewFabric() Fabric {
 		log.Fatalf("Failed to get network: %v", err)
 	}
 
+	identity, err := wallet.Get("appUser")
+	block, _ := pem.Decode([]byte(identity.(*gateway.X509Identity).Certificate()))
+	certificate, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return Fabric{}
+	}
+	key, err := x509.MarshalPKIXPublicKey(certificate.PublicKey)
+	if err != nil {
+		return Fabric{}
+	}
+
 	return Fabric{
-		contract: network.GetContract("ibse"),
+		PublicKey: hex.EncodeToString(key),
+		contract:  network.GetContract("ibse"),
 	}
 }
 
-func (fabric Fabric) CreateAsset(id string, owner string, CIDs []string) error {
+func (fabric Fabric) CreateAsset(id string, CIDs []string) error {
 	CIDsJson, err := json.Marshal(CIDs)
-	_, err = fabric.contract.SubmitTransaction("CreateAsset", id, owner, string(CIDsJson))
+	_, err = fabric.contract.SubmitTransaction("CreateAsset", id, fabric.PublicKey, string(CIDsJson))
 	if err != nil {
 		log.Fatalf("Failed to Create asset: %v", err)
 	}
@@ -90,12 +103,12 @@ func (fabric Fabric) ReadAsset(id string) (Asset, error) {
 	return asset, nil
 }
 
-func (fabric Fabric) ReadAllAssets() ([]map[string]interface{}, error) {
+func (fabric Fabric) ReadAllAssets() ([]Asset, error) {
 	result, err := fabric.contract.EvaluateTransaction("GetAllAssets")
 	if err != nil {
 		log.Fatalf("Failed to evaluate transaction: %v", err)
 	}
-	var assets []map[string]interface{}
+	var assets []Asset
 	err = json.Unmarshal(result, &assets)
 	if err != nil {
 		return nil, err
