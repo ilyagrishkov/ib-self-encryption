@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"github.com/cloudflare/cfssl/log"
 	"github.com/spf13/cobra"
 	"ibse/internal"
 )
@@ -20,9 +22,12 @@ var readCmd = &cobra.Command{
 		if all, _ := cmd.Flags().GetBool("all"); all {
 			assets, err := fabric.ReadAllAssets()
 			if err != nil {
+				log.Error("Failed to read all assets from the Fabric")
 				return
 			}
-			fmt.Println(assets)
+
+			jsonAssets, _ := json.Marshal(assets)
+			fmt.Println(string(jsonAssets))
 			return
 		}
 		if len(args) == 1 {
@@ -30,7 +35,8 @@ var readCmd = &cobra.Command{
 			if err != nil {
 				fmt.Printf("Error reading asset with id %s\n", args[0])
 			}
-			fmt.Println(asset)
+			jsonAsset, _ := json.Marshal(asset)
+			fmt.Println(string(jsonAsset))
 		} else {
 			fmt.Println("Provide asset ID or -a flag to read all assets")
 		}

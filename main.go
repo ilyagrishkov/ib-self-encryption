@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"ibse/cmd"
 	"ibse/internal"
 	"os"
@@ -17,5 +16,4 @@ func main() {
 
 func cleanUp() {
 	_ = os.RemoveAll(internal.TempDir)
-	_ = os.RemoveAll(fmt.Sprintf("%s/wallet", internal.RootDir))
 }

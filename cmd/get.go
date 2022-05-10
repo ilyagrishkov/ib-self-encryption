@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/cloudflare/cfssl/log"
 	"github.com/spf13/cobra"
 	"ibse/internal"
-	"os"
 )
 
 var getCmd = &cobra.Command{
@@ -13,25 +13,30 @@ var getCmd = &cobra.Command{
 	Long:  `Get chunks of encrypted file from IPFS, and decrypt them`,
 	Args:  cobra.ExactArgs(3),
 	Run: func(cmd *cobra.Command, args []string) {
+		// Create new Fabric connection
 		fabric := internal.NewFabric()
+
+		// Read asset from the Fabric
 		asset, err := fabric.ReadAsset(args[0])
 		if err != nil {
+			log.Error("Failed to read an asset from the Fabric")
 			return
 		}
 
-		CIDs := asset.CID
+		// Iterate over CIDs and download all file chunks from the IPFS
 		var paths []string
-		for _, cid := range CIDs {
+		for _, cid := range asset.CID {
 			path, _ := internal.GetFromIPFS(cid)
 			paths = append(paths, path)
 		}
 
-		if err != nil {
-			return
-		}
-		createChunkStore(args[1], paths)
+		// Generate a chunk_store directory in a WASM mapped directory
+		internal.CreateChunkStore(args[1], paths)
+
+		// Decrypt a file and write the output to the specified location
 		_, err = internal.Decrypt(fmt.Sprintf("%s/chunk_store", internal.TempDir), args[2], fabric.PublicKey)
 		if err != nil {
+			log.Error("failed to decrypt a file")
 			return
 		}
 	},
@@ -39,22 +44,4 @@ var getCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(getCmd)
-}
-
-func createChunkStore(dataMapLoc string, chunksLocs []string) {
-	err := os.Mkdir(fmt.Sprintf("%s/chunk_store", internal.TempDir), os.ModePerm)
-	if err != nil {
-		return
-	}
-	for _, chunkLoc := range chunksLocs {
-		_, err := internal.Unzip(chunkLoc, fmt.Sprintf("%s/chunk_store", internal.TempDir))
-		if err != nil {
-			return
-		}
-	}
-
-	err = internal.CopyFile(dataMapLoc, fmt.Sprintf("%s/chunk_store/data_map", internal.TempDir))
-	if err != nil {
-		return
-	}
 }

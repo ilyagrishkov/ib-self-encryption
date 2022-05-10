@@ -28,6 +28,7 @@ var initCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(initCmd)
+
 	initCmd.Flags().StringP("path", "p", "", "Path to the test Fabric test network directory")
 	err := initCmd.MarkFlagRequired("path")
 	if err != nil {
