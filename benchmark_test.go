@@ -95,7 +95,7 @@ func TestBench750kb(t *testing.T) {
 
 	file, _ := json.Marshal(results)
 	_ = os.MkdirAll("output/", os.ModePerm)
-	_ = ioutil.WriteFile("output/100KB.json", file, 0644)
+	_ = ioutil.WriteFile("output/750KB.json", file, 0644)
 	_ = os.RemoveAll("resources/chunk_store")
 }
 
