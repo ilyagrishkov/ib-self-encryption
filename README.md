@@ -1,7 +1,7 @@
 # ID-based self-encryption application
 
 ## Overview
-The prototype of a Hyperledger Fabric application for interracting with the ledger and IPFS to securely store ownership-preserved self-encrpyted data as part of the Delft University of Technology Bachelor's Thesis.
+The prototype of a Hyperledger Fabric application for interacting with the ledger and IPFS to securely store ownership-preserved self-encrypted data as part of the Delft University of Technology Bachelor's Thesis.
 
 This source code is based on Hyperledger Fabric Samples, https://github.com/hyperledger/fabric-samples   
 
