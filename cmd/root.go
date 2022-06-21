@@ -11,8 +11,8 @@ import (
 
 var RootCmd = &cobra.Command{
 	Use:   "ibse",
-	Short: "An example of cobra",
-	Long:  `This application shows how to create modern CLI applications in go using Cobra CLI library`,
+	Short: "ID-based self-encryption application",
+	Long:  `ID-based self-encryption application for interracting with the Hyperledger Fabric ledger and the IPFS`,
 }
 
 func Execute() {
