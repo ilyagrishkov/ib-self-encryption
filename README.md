@@ -5,7 +5,7 @@ The prototype of a Hyperledger Fabric application for interacting with the ledge
 
 This source code is based on Hyperledger Fabric Samples, https://github.com/hyperledger/fabric-samples   
 
-Self-Encryption library: https://github.com/ilyagrishkov/ib-self-encryption-rust  
+ID-based self-encryption library: https://github.com/ilyagrishkov/ib-self-encryption-rust  
 Smart contract: https://github.com/ilyagrishkov/ib-self-encryption-smart-contract
 
 ## Installation
