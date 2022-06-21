@@ -10,7 +10,7 @@ Smart contract: https://github.com/ilyagrishkov/ib-self-encryption-smart-contrac
 
 ## Installation
 * Golang v1.18.3
-* Docker v19.03.8
+* Docker v20.10.14
 * Hyperledger test-network v2.4.3
 
 ## Before run
